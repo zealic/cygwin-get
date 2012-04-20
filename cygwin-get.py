@@ -1,35 +1,35 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding:utf-8 -*-
 # <code>
 #   <author name="Zealic" email="zealic(at)gmail.com" />
-#   <timestamp>2012-01-13</timestamp>
+#   <timestamp>2012-04-20</timestamp>
 # </code>
-"""cygwin-get 0.2 - Manage cygwin installations (Command-line user interface).
+"""cygwin-get 0.3 - Manage cygwin installations (Command-line user interface).
 
 Usage:
-cygwin-get [-h] [-d|[-o [output-mode]]] [-s <file>] [-r <file>] [-t [dir]] [-m [site]] <packages-list> 
+cygwin-get [-h] [-d] [-s <file>] [-r <file>] [-t <dir>] [-m <url>] [-v <spec>] <packages-list>
 
 =======================================
 -h |--help
     Display this help.
 
--d | --download
-    Download packages.
+-n | --no-download
+    Do not download packages.
 
 -s | --setupinfo
     Specify setup file. (Default : $TARGET-DIR/setup.ini, when use "*", will download it from web.)
 
 -r | --response
-    Response xml file (packages-list).
+    Xml packages response file (packages-list).
 
---target-dir
+-t | --target-dir
     Target download directory. (Default : $CYGWIN-GET_HOME/packages).
 
 --mirror
     Mirror site. (Default : http://mirrors.163.com/cygwin)
 
---default-spec
-    Default version spec. (Default : test)
+--version-spec
+    Version spec, value can be [test | current | prev]. (Default : test)
 
 packages-list
     Specify package list.
@@ -39,11 +39,15 @@ Copyright 2011-2012 by Zealic <zealic#gmail.com>
 """
 """
 Changelog:
-* v0.2 :
-  Use xml response file.
+# v0.3 :
+  * Improve options.
+  * Multi-thread download support.
 
-* v0.1 :
-  Initial version.
+# v0.2 :
+  * Use xml packages response file.
+
+# v0.1 :
+  * Initial version.
 """
 __version__ = "0.2"
 import os, sys, urllib2
@@ -60,38 +64,38 @@ EX_INVALID_RESPONSE   = 6
 
 BUFFER_SIZE           = 1024 * 64
 
-option_download       = False
+option_no_download    = False
 option_target_dir     = os.path.join(os.path.dirname(__file__), "packages")
 option_mirror         = "http://mirrors.163.com/cygwin"
-option_default_spec   = "test"
+option_version_spec   = "test"
 
 
 def initialize():
   import getopt
-  global option_download, option_target_dir, option_mirror, option_default_spec
+  global option_no_download, option_target_dir, option_mirror, option_version_spec
   option_setupinfo = None
   option_response_file = None
   
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "hds:r::::", ["help", "download", "setupinfo=", "response=", "target-dir=", "mirror=", "default-spec="])
+    opts, args = getopt.getopt(sys.argv[1:], "hns:r:d:m:v:", ["help", "no-download", "setupinfo=", "response=", "target-dir=", "mirror=", "version-spec="])
   except getopt.GetoptError:
     usage(EX_INVALID_ARG)
   
   for o, v in opts :
     if o in ("-h", "--help"):
       usage(EX_SHOW_HELP)
-    elif o in ("-d", "--download"):
-      option_download = True
+    elif o in ("-n", "--no-download"):
+      option_no_download = True
     elif o in ("-s", "--setupinfo"):
       option_setupinfo = v
     elif o in ("-r", "--response"):
       option_response_file= v
-    elif o == "--target-dir":
+    elif o in ("-d", "--target-dir"):
       option_target_dir = v
-    elif o == "--mirror":
+    elif o in ("-m", "--mirror"):
       option_mirror = v
-    elif o == "--default-spec":
-      option_default_spec = v
+    elif o in ("-v", "--version-spec"):
+      option_version_spec = v
   
   if option_response_file == None and len(args) == 0:
     usage(EX_INVALID_ARG)
@@ -121,7 +125,7 @@ def get_requires(names, old_requires = {}):
   for name in names:
     requires[name] = {}
   for k, v in requires.iteritems():
-    if not v.has_key("spec"): v["spec"] = option_default_spec
+    if not v.has_key("spec"): v["spec"] = option_version_spec
   return requires
 
 def main():
@@ -131,7 +135,7 @@ def main():
   
   if len(requires) > 0:
     resolve_deps(allPkg, requires, deps)
-  if option_download:
+  if not option_no_download:
       outputs = []
       for k, v in deps.iteritems():
         try:
@@ -177,7 +181,7 @@ def parse_response_file(response_file):
       if p.attrib.has_key("spec"):
         currentRequire["spec"] = p.attrib["spec"]
       else:
-        currentRequire["spec"] = option_default_spec
+        currentRequire["spec"] = option_version_spec
     return result
   except Exception as e:
     report_info("Invalid response file '%s', %s" % (response_file, e.message))
