@@ -236,7 +236,7 @@ class CygwinRepository(object):
         categoryName = str(requireName[1:])
         for k, v in self.packages.iteritems():
           if categoryName in v.categories:
-            self.__append_package(self.packages, self.packages[k], result)
+            self.__append_package(self.packages[k], result)
       elif self.packages.has_key(requireName):
         self.__append_package(self.packages[requireName], result)
 
@@ -301,31 +301,29 @@ def main():
     sys.exit(EX_NO_SETUP_INFO)
   
   deps = repos.resolve(option_requires)
+  outputs = []
   if not option_no_download:
-      outputs = []
-      for k, v in deps.iteritems():
-        try:
-          if v.download(option_version_spec):
-            outputs.append(v.get_path(option_version_spec))
-          else:
-            report_info("Verify package %s failed." % (v.name))
-            exit(EX_VERIFY_FAILED)
-        except urllib2.HTTPError as e:
-          if e.getcode() == 404 and k == "_update-info-dir":
-            report_info("setup.ini file has expired, use '-s*' switch or update this file.")
-            exit(EX_UPDATE_SETUP_INFO)
-          else:
-            report_info("Http error code " + str(e.getcode()) + " of " + e.geturl())
-            exit(EX_HTTP_ERROR)
-      outputs.sort()
-      if len(outputs) > 0:
-        print("\n".join(outputs))
+    for k, v in deps.iteritems():
+      try:
+        if v.download(option_version_spec):
+          outputs.append(v.get_path(option_version_spec))
+        else:
+          report_info("Verify package %s failed." % (v.name))
+          exit(EX_VERIFY_FAILED)
+      except urllib2.HTTPError as e:
+        if e.getcode() == 404 and k == "_update-info-dir":
+          report_info("setup.ini file has expired, use '-s *' switch or update this file.")
+          exit(EX_UPDATE_SETUP_INFO)
+        else:
+          report_info("Http error code " + str(e.getcode()) + " of " + e.geturl())
+          exit(EX_HTTP_ERROR)
   else:
     outputs = []
     for k, v in deps.iteritems():
-      outputs.append(k)
-    if len(outputs) > 0:
-      print("\n".join(outputs))
+      outputs.append(v.get_path(option_version_spec))
+  outputs.sort()
+  if len(outputs) > 0:
+    print("\n".join(outputs))
   exit(EX_OK)
 
 
