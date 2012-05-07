@@ -292,6 +292,34 @@ class CygwinPackage(object):
     return m.hexdigest() == current_ver["hash"]
 
 
+class TaskManager(object):
+  import threading
+  lock = threading.Lock()
+  
+  def run(self, tasks):
+    from Queue import Queue
+    from threading import Thread
+    def _job_core(tasks):
+      while tasks.qsize() > 0:
+        if self.lock.acquire():
+          task = tasks.get()
+          self.lock.release()
+          code, msg  = task()
+          report_info(">> [%s] : %s" % (task.name, msg))
+          if isinstance(code, int): exit(code)
+          if tasks.qsize() != 0:
+              report_info("   Reaming %d." % (tasks.qsize()))
+          tasks.task_done()
+    
+    JOBS_SIZE = 5
+    runningTasks = Queue()
+    for task in tasks:
+        runningTasks.put(task)
+    for i in xrange(JOBS_SIZE):
+        runner = Thread(target = _job_core, args = (runningTasks,))
+        runner.start()
+    runningTasks.join()
+
 def main():
   initialize_options()
   try:
@@ -303,20 +331,26 @@ def main():
   deps = repos.resolve(option_requires)
   outputs = []
   if not option_no_download:
-    for k, v in deps.iteritems():
+    def async_run(package, spec, outputs):
       try:
-        if v.download(option_version_spec):
-          outputs.append(v.get_path(option_version_spec))
+        if package.download(spec):
+          outputs.append(package.get_path(spec))
         else:
-          report_info("Verify package %s failed." % (v.name))
-          exit(EX_VERIFY_FAILED)
+          return EX_VERIFY_FAILED, "Verify package %s failed." % (package.name)
       except urllib2.HTTPError as e:
         if e.getcode() == 404 and k == "_update-info-dir":
-          report_info("setup.ini file has expired, use '-s *' switch or update this file.")
-          exit(EX_UPDATE_SETUP_INFO)
+          return EX_UPDATE_SETUP_INFO, "setup.ini file has expired, use '-s *' switch or update this file."
         else:
-          report_info("Http error code " + str(e.getcode()) + " of " + e.geturl())
-          exit(EX_HTTP_ERROR)
+          return EX_HTTP_ERROR, ("Http error code " + str(e.getcode()) + " of " + e.geturl())
+      return None, "DONE"
+    tasks = []
+    for k, v in deps.iteritems():
+      task = lambda pkg=v: async_run(pkg, option_version_spec, outputs)
+      task.name = v.name
+      tasks.append(task)
+    taskMan = TaskManager()
+    taskMan.run(tasks)
+    # TODO: Respond Ctrl + C interrupt
   else:
     outputs = []
     for k, v in deps.iteritems():
