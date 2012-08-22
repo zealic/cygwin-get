@@ -7,7 +7,7 @@
 """cygwin-get 0.3 - Manage cygwin installations (Command-line user interface).
 
 Usage:
-cygwin-get [-h] [-d] [-s <file>] [-r <file>] [-t <dir>] [-m <url>] [-v <spec>] <packages-list>
+cygwin-get [-h] [-n] [-s <file>] [-r <file>] [-d <dir>] [-m <url>] [-v <spec>] <packages-list>
 
 =======================================
 -h |--help
@@ -22,13 +22,13 @@ cygwin-get [-h] [-d] [-s <file>] [-r <file>] [-t <dir>] [-m <url>] [-v <spec>] <
 -r | --response
     Xml packages response file (packages-list).
 
--t | --target-dir
+-d | --target-dir
     Target download directory. (Default : $CYGWIN-GET_HOME/packages).
 
---mirror
+-m | --mirror
     Mirror site. (Default : http://mirrors.163.com/cygwin)
 
---version-spec
+-v | --version-spec
     Version spec, value can be [test | current | prev]. (Default : test)
 
 packages-list
@@ -103,13 +103,15 @@ def initialize_options():
   if option_response_file == None and len(args) == 0:
     usage(EX_INVALID_ARG)
   
+  option_requires = set()
   if option_response_file <> None and os.path.exists(option_response_file):
     option_requires = parse_response_file(option_response_file)
-  option_requires = get_requires(args)
+  option_requires = get_requires(args, option_requires)
   
   if option_setupinfo == "*" or option_setupinfo == None:
     setupinfo_file = os.path.join(option_target_dir, "setup.ini")
     if option_setupinfo == "*" or not os.path.exists(setupinfo_file):
+      report_info("Downloading setup.ini ...")
       url = get_url("setup.ini")
       download_file(url, setupinfo_file)
     option_setupinfo = setupinfo_file
@@ -173,6 +175,7 @@ class CygwinRepository(object):
     self.packages = self.__parse_cygwin_config(config_file, target_dir)
   
   def __parse_cygwin_config(self, config_file, target_dir):
+    report_info("Parsing setup.ini ...")
     cfg = file(config_file, "r")
     allLines = cfg.readlines()
 
