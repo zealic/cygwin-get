@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 # <code>
 #   <author name="Zealic" email="zealic(at)gmail.com" />
-#   <timestamp>2012-04-20</timestamp>
+#   <timestamp>2012-08-22</timestamp>
 # </code>
 """cygwin-get 0.3 - Manage cygwin installations (Command-line user interface).
 
@@ -361,6 +361,9 @@ def main():
     outputs = []
     for k, v in deps.iteritems():
       outputs.append(v.get_path(option_version_spec))
+
+  # Normalize result
+  for i in xrange(len(outputs)): outputs[i] = os.path.normcase(outputs[i])
   outputs.sort()
   if len(outputs) > 0:
     print("\n".join(outputs))
