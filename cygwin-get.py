@@ -297,8 +297,10 @@ class TaskManager(object):
   lock = threading.Lock()
   
   def run(self, tasks):
+    import time
     from Queue import Queue
     from threading import Thread
+
     def _job_core(tasks):
       while tasks.qsize() > 0:
         if self.lock.acquire():
@@ -313,12 +315,17 @@ class TaskManager(object):
     
     JOBS_SIZE = 5
     runningTasks = Queue()
+    # Run tasks with job size
     for task in tasks:
         runningTasks.put(task)
     for i in xrange(JOBS_SIZE):
         runner = Thread(target = _job_core, args = (runningTasks,))
+        runner.daemon = True
         runner.start()
-    runningTasks.join()
+    # Wait all tasks complete, It can response Ctrl + C interrupt.
+    while runningTasks.qsize() > 0:
+      time.sleep(1)
+
 
 def main():
   initialize_options()
@@ -350,7 +357,6 @@ def main():
       tasks.append(task)
     taskMan = TaskManager()
     taskMan.run(tasks)
-    # TODO: Respond Ctrl + C interrupt
   else:
     outputs = []
     for k, v in deps.iteritems():
