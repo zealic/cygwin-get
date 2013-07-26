@@ -26,7 +26,7 @@ cygwin-get [-h] [-n] [-s <file>] [-r <file>] [-d <dir>] [-m <url>] [-v <spec>] <
     Target download directory. (Default : $CYGWIN-GET_HOME/packages).
 
 -m | --mirror
-    Mirror site. (Default : http://mirrors.163.com/cygwin)
+    Mirror site. (Default : http://mirror.pkill.info/cygwin/x86)
 
 -v | --version-spec
     Version spec, value can be [test | current | prev]. (Default : test)
@@ -66,7 +66,7 @@ BUFFER_SIZE           = 1024 * 64
 
 option_no_download    = False
 option_target_dir     = os.path.join(os.path.dirname(__file__), "packages")
-option_mirror         = "http://mirrors.163.com/cygwin"
+option_mirror         = "http://mirror.pkill.info/cygwin/x86"
 option_response_file  = None
 option_setupinfo      = None
 option_version_spec   = "test"
