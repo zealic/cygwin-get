@@ -327,13 +327,17 @@ class TaskManager(object):
     # Run tasks with job size
     for task in tasks:
         runningTasks.put(task)
+    
+    runners = []
     for i in xrange(JOBS_SIZE):
         runner = Thread(target = _job_core, args = (runningTasks,))
         runner.daemon = True
         runner.start()
+        runners.append(runner)
     # Wait all tasks complete, It can response Ctrl + C interrupt.
-    while runningTasks.qsize() > 0:
+    while any(runner.isAlive() for runner in runners):
       time.sleep(1)
+    runningTasks.join()
 
 
 def main():
