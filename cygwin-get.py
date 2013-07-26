@@ -156,7 +156,7 @@ def download_file(url, file_path):
     fd = urllib2.urlopen(re)
     while True:
       rs = fd.read(BUFFER_SIZE)
-      if rs == "":
+      if not rs:
         break
       target_file.write(rs)
   except:
@@ -167,7 +167,7 @@ def download_file(url, file_path):
     if not target_file.closed: target_file.close()
 
 def report_info(message):
-  sys.stderr.write(message + "\n")
+  sys.stderr.write(str(message) + "\n")
 
 
 class CygwinRepository(object):
@@ -267,7 +267,9 @@ class CygwinPackage(object):
       if self.__verify(current_ver):
         report_info('"%s" already exists, PASS!' % base_name)
         return True
-    report_info("Downloading " + base_name + " ...")
+      report_info("Verify exist file failed, downloading " + base_name + " ...")
+    else:
+      report_info("Downloading " + base_name + " ...")
     download_file(url, file_path)
     return self.__verify(current_ver)
   
