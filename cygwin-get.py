@@ -257,9 +257,6 @@ class CygwinPackage(object):
   
   def download(self, spec):
     current_ver = self.__select_spec(spec)
-    if not current_ver:
-      report_info('Package "%s" dose not exist binary file, download skipped.' % self.name)
-      return True
     url = get_url(current_ver["path"])
     base_name = os.path.basename(current_ver["path"])
     file_path = os.path.join(self.dir, current_ver["path"])
@@ -273,10 +270,14 @@ class CygwinPackage(object):
     download_file(url, file_path)
     return self.__verify(current_ver)
   
+  def has_path(self, spec):
+    current_ver = self.__select_spec(spec)
+    return current_ver != None
+  
   def get_path(self, spec):
     current_ver = self.__select_spec(spec)
-    if not current_ver:
-      return "N/A"
+    if not self.has_path(spec):
+      return None
     return os.path.join(self.dir, current_ver["path"])
   
   def __select_spec(self, spec):
@@ -339,7 +340,6 @@ class TaskManager(object):
     # Wait all tasks complete, It can response Ctrl + C interrupt.
     while any(runner.isAlive() for runner in runners):
       time.sleep(1)
-    runningTasks.join()
 
 
 def main():
@@ -355,6 +355,8 @@ def main():
   if not option_no_download:
     def async_run(package, spec, outputs):
       try:
+        if not package.has_path(spec):
+          return None, 'WARNING - Package "%s" dose not exist binary file, download skipped.' % (package.name)
         if package.download(spec):
           outputs.append(package.get_path(spec))
         else:
@@ -375,7 +377,8 @@ def main():
   else:
     outputs = []
     for k, v in deps.iteritems():
-      outputs.append(v.get_path(option_version_spec))
+      if v.has_path(option_version_spec):
+        outputs.append(v.get_path(option_version_spec))
 
   # Normalize result
   for i in xrange(len(outputs)): outputs[i] = os.path.normcase(outputs[i])
