@@ -257,6 +257,9 @@ class CygwinPackage(object):
   
   def download(self, spec):
     current_ver = self.__select_spec(spec)
+    if not current_ver:
+      report_info('Package "%s" dose not exist binary file, download skipped.' % self.name)
+      return True
     url = get_url(current_ver["path"])
     base_name = os.path.basename(current_ver["path"])
     file_path = os.path.join(self.dir, current_ver["path"])
@@ -270,13 +273,16 @@ class CygwinPackage(object):
   
   def get_path(self, spec):
     current_ver = self.__select_spec(spec)
+    if not current_ver:
+      return "N/A"
     return os.path.join(self.dir, current_ver["path"])
   
   def __select_spec(self, spec):
     if self.specs.has_key(spec):
       return self.specs[spec]["binary"]
-    elif self.specs.has_key("current"):
+    elif self.specs.has_key("current") and self.specs["current"].has_key("binary"):
       return self.specs["current"]["binary"]
+    return None
   
   def __verify(self, current_ver):
     import hashlib
