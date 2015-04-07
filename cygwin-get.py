@@ -2,12 +2,12 @@
 # -*- coding:utf-8 -*-
 # <code>
 #   <author name="Zealic" email="zealic(at)gmail.com" />
-#   <timestamp>2013-07-26</timestamp>
+#   <timestamp>2015-04-07</timestamp>
 # </code>
-"""cygwin-get 0.3 - Manage cygwin installations (Command-line user interface).
+"""cygwin-get 0.4 - Manage cygwin installations (Command-line user interface).
 
 Usage:
-cygwin-get [-h] [-n] [-s <file>] [-r <file>] [-d <dir>] [-m <url>] [-v <spec>] <packages-list>
+cygwin-get [-h] [-n] [-s <file>] [-r <file>] [-d <dir>] [-m <url>] [-a <arch>] [-v <spec>] <packages-list>
 
 =======================================
 -h |--help
@@ -26,7 +26,10 @@ cygwin-get [-h] [-n] [-s <file>] [-r <file>] [-d <dir>] [-m <url>] [-v <spec>] <
     Target download directory. (Default : $CYGWIN-GET_HOME/packages).
 
 -m | --mirror
-    Mirror site. (Default : http://mirrors.163.com/cygwin/x86)
+    Mirror site. (Default : http://mirrors.163.com/cygwin)
+
+-a | --arch
+    Architect, allow value : [x86, x64]. (Default: x86)
 
 -v | --version-spec
     Version spec, value can be [test | current | prev]. (Default : test)
@@ -66,7 +69,8 @@ BUFFER_SIZE           = 1024 * 64
 
 option_no_download    = False
 option_target_dir     = os.path.join(os.path.dirname(__file__), "packages")
-option_mirror         = "http://mirrors.163.com/cygwin/x86"
+option_mirror         = "http://mirrors.163.com/cygwin"
+option_arch           = "x86"
 option_response_file  = None
 option_setupinfo      = None
 option_version_spec   = "test"
@@ -112,7 +116,7 @@ def initialize_options():
     setupinfo_file = os.path.join(option_target_dir, "setup.ini")
     if option_setupinfo == "*" or not os.path.exists(setupinfo_file):
       report_info("Downloading setup.ini ...")
-      url = get_url("setup.ini")
+      url = get_url(option_arch + "/setup.ini")
       download_file(url, setupinfo_file)
     option_setupinfo = setupinfo_file
 
@@ -293,7 +297,7 @@ class CygwinPackage(object):
     if not os.path.exists(file_path): return False
     if os.path.getsize(file_path) != current_ver["size"]:
       return False
-    m = hashlib.md5()
+    m = hashlib.sha512()
     f = file(file_path, "rb")
     while True:
       rs = f.read(BUFFER_SIZE)
